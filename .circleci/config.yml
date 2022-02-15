@@ -5,22 +5,61 @@ version: 2.1
 # Define a job to be invoked later in a workflow.
 # See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-  say-hello:
+  build:
     # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
     # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
     docker:
       - image: cimg/base:stable
+        environment:
+          CQ_DSN: postgresql://postgres:pass@localhost/postgres?sslmode=disable
+      - image: postgres:11
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: pass
+          POSTGRES_DB: postgres
     # Add steps to the job
     # See: https://circleci.com/docs/2.0/configuration-reference/#steps
     steps:
       - checkout
       - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
+          name: "Install CloudQuery"
+          command: curl -L https://github.com/cloudquery/cloudquery/releases/latest/download/cloudquery_linux_x86_64 -o cloudquery && chmod a+x cloudquery
+      - run: 
+          name: "Fetch AWS Resources"
+          command: ./cloudquery fetch --no-telemetry
+  policy:
+    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
+    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+    docker:
+      - image: cimg/base:stable
+        environment:
+          CQ_DSN: postgresql://postgres:pass@localhost/postgres?sslmode=disable
+      - image: postgres:11
+        environment:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: pass
+          POSTGRES_DB: postgres
+    # Add steps to the job
+    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+    steps:
+      - checkout
+      - run:
+          name: "Install CloudQuery"
+          command: curl -L https://github.com/cloudquery/cloudquery/releases/latest/download/cloudquery_linux_x86_64 -o cloudquery && chmod a+x cloudquery
+      - run:
+          name: "Check AWS Policy"
+          command: ./cloudquery policy run aws --no-telemetry --output-dir ./
+      - store_artifacts:
+          path: ./aws.json
+          destination: aws-policy
 
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
-  say-hello-workflow:
+  fetch-workflow:
     jobs:
-      - say-hello
+      - build
+  policy-check:
+    jobs:
+      - build
+      - policy
