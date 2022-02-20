@@ -24,6 +24,10 @@ jobs:
       - run:
           name: "Install CloudQuery"
           command: curl -L https://github.com/cloudquery/cloudquery/releases/latest/download/cloudquery_linux_x86_64 -o cloudquery && chmod a+x cloudquery
+      #  Wait for Postgres to be ready before proceeding
+      - run:
+          name: "Waiting for Postgres to be ready"
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
       - run: 
           name: "Fetch AWS Resources"
           command: ./cloudquery fetch --no-telemetry
@@ -46,6 +50,12 @@ jobs:
       - run:
           name: "Install CloudQuery"
           command: curl -L https://github.com/cloudquery/cloudquery/releases/latest/download/cloudquery_linux_x86_64 -o cloudquery && chmod a+x cloudquery
+      - run:
+          name: "Waiting for Postgres to be ready"
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run: 
+          name: "Fetch AWS Resources"
+          command: ./cloudquery fetch --no-telemetry
       - run:
           name: "Check AWS Policy"
           command: ./cloudquery policy run aws --no-telemetry --output-dir ./
